@@ -32,11 +32,16 @@ exports.login = async (req, res) => {
         role: user.role,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "1h" },
     );
-    return res
-      .status(200)
-      .json({ message: "Login successful", accessToken: token });
+    return res.status(200).json({
+      message: "Login successful",
+      accessToken: token,
+      user: {
+        _id: user._id,
+        email: user.email,
+      },
+    });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
