@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:6
+    container_name: novapay-mongo
+    ports:
+      - "27017:27017"
+    command: ["mongod", "--replSet", "rs0"]
+    volumes:
+      - mongo-data:/data/db
+
+  auth-service:
+    build: ./auth-service
+    container_name: novapay-auth
+    ports:
+      - "4001:4001"
+    env_file:
+      - ./auth-service/.env
+    depends_on:
+      - mongo
+
+  wallet-service:
+    build: ./wallet-service
+    container_name: novapay-wallet
+    ports:
+      - "4002:4002"
+    env_file:
+      - ./wallet-service/.env
+    depends_on:
+      - mongo
+
+  payment-service:
+    build: ./payment-service
+    container_name: novapay-payment
+    ports:
+      - "4003:4003"
+    env_file:
+      - ./payment-service/.env
+    depends_on:
+      - mongo
+      - auth-service
+      - wallet-service
+
+volumes:
+  mongo-data:
