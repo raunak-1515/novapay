@@ -1,4 +1,4 @@
-version: "3.9"
+
 
 services:
   mongo:
@@ -10,6 +10,23 @@ services:
     volumes:
       - mongo-data:/data/db
 
+    
+  redis:
+    image: redis:alpine
+    container_name: novapay-redis
+    ports:
+      - "6379:6379"
+  
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: novapay-rabbitmq
+    ports:
+      - "5672:5672"   # The port our code uses to send messages
+      - "15672:15672" # The port for the web dashboard UI
+
+
+
   auth-service:
     build: ./auth-service
     container_name: novapay-auth
@@ -19,6 +36,8 @@ services:
       - ./auth-service/.env
     depends_on:
       - mongo
+    volumes:
+      - ./uploads:/app/uploads
 
   wallet-service:
     build: ./wallet-service

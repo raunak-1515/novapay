@@ -9,6 +9,10 @@ const paymentRoutes = require("./routes/paymentRoutes");
 
 const app = express();
 app.use(express.json());
+const cors = require("cors");
+require("./workers/emailWorker");
+
+app.use(cors({ origin: "http://localhost:5173" }));
 
 mongoose
   .connect(process.env.MONGO_URI)
@@ -19,5 +23,5 @@ app.use("/payments", paymentRoutes);
 
 const PORT = process.env.PORT || 4003;
 app.listen(PORT, () => {
-  console.log(`Payment serive running on port ${PORT}`);
+  console.log(`Payment service running on port ${PORT}`);
 });

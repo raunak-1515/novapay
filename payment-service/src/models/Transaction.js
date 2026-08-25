@@ -18,8 +18,13 @@ const transactionSchema = new mongoose.Schema(
       enum: ["SUCCESS", "FAILED"],
       default: "SUCCESS",
     },
+    note: {
+      type: String,
+      trim: true,
+      default: "",
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("Transaction", transactionSchema);
