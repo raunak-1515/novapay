@@ -1,141 +1,103 @@
-# NovaPay 💳
+# 🚀 NovaPay
 
-NovaPay is a **Dockerized fintech microservice backend** that simulates how real-world payment systems work. It supports secure authentication, wallet management, and peer‑to‑peer money transfers using a microservice architecture.
+NovaPay is a containerized, event-driven fintech platform demonstrating a modern microservices architecture. It features secure peer-to-peer money transfers, real-time WebSockets, read-through caching, and asynchronous background processing.
 
-This project was built by a 3rd‑year engineering student to deeply learn backend system design, distributed debugging, and DevOps practices.
+## 🏗️ Architecture Diagram
 
----
+Below is the high-level architecture of how the microservices communicate with the databases, caching layer, and message queues.
 
-# 🚀 Features
+```mermaid
+graph TD
+    %% Frontend
+    UI[🖥️ React Frontend]
 
-• User registration & login with JWT authentication
-• Wallet creation and balance management
-• Secure money transfer between users
-• Transaction history tracking
-• Microservice architecture
-• MongoDB replica set for reliability
-• Fully Dockerized setup with one‑command startup
+    %% Microservices
+    subgraph Docker Compose
+        Auth[🔐 Auth Service :4001]
+        Wallet[💳 Wallet Service :4002]
+        Payment[💸 Payment Service :4003]
+        
+        %% Databases & Brokers
+        DB[(🍃 MongoDB Replica Set)]
+        Cache[(⚡ Redis Cache)]
+        MQ[[🐇 RabbitMQ]]
+        
+        %% Background Worker
+        Worker[⚙️ Email Worker]
+    end
 
----
+    %% External
+    SMTP[📧 Gmail SMTP]
 
-# 🧠 Architecture Overview
+    %% API Connections
+    UI -->|REST / JWT| Auth
+    UI -->|REST / JWT| Wallet
+    UI -->|REST / JWT| Payment
+    
+    %% WebSocket
+    Auth <-->|Live WebSockets| UI
 
-NovaPay consists of 3 independent services:
+    %% Database Connections
+    Auth -->|Read / Write| DB
+    Wallet -->|Read / Write| DB
+    Payment -->|Read / Write| DB
 
-1. **Auth Service** – handles registration, login, JWT generation
-2. **Wallet Service** – manages wallet balances and top‑ups
-3. **Payment Service** – coordinates money transfers and history
+    %% Redis Cache
+    Payment -->|Read-Through Cache| Cache
 
-All services communicate via REST APIs and use MongoDB as database.
-
-```
-Client → Auth Service → Wallet Service → Payment Service → MongoDB
-```
-
-Each service has its own database:
-• novapay-auth
-• novapay-wallet
-• novapay-payment
-
-This mirrors real fintech backend design.
-
----
-
-# 🛠️ Tech Stack
-
-Backend: Node.js, Express
-Database: MongoDB Replica Set
-Auth: JWT
-DevOps: Docker, Docker Compose
-Other: REST APIs, Microservices
-
----
-
-# 🐳 How to Run (Docker)
-
-## 1. Install Docker Desktop
-
-## 2. Clone repo
-
-```
-git clone https://github.com/raunak-1515/novapay.git
-cd novapay
+    %% RabbitMQ Queue
+    Payment -->|Publish Async Event| MQ
+    MQ -->|Consume Event| Worker
+    
+    %% External Action
+    Worker -->|Send Receipt| SMTP
 ```
 
-## 3. Start everything
+## ✨ Core Features
 
+* **Secure Authentication:** JWT-based stateless auth mechanism with user profile management.
+* **Multipart File Uploads:** Secure KYC document and avatar uploads using `multer`.
+* **Event-Driven Emails:** Heavy SMTP email dispatching is decoupled from the main API thread using a **RabbitMQ** queue and a dedicated background worker to ensure lightning-fast API responses and fault tolerance.
+* **High-Performance Caching:** The user transaction dashboard implements a read-through caching strategy via **Redis** with automated cache-invalidation on successful transfers, drastically reducing MongoDB read operations.
+* **Real-Time Push Notifications:** The frontend maintains a persistent **WebSocket** connection to instantly reflect administrative KYC approvals and UI state changes without requiring page refreshes.
+* **Wallet & Bank Integration:** Users can securely link external bank accounts to fund their digital wallets before executing peer-to-peer transfers.
+
+## ⚙️ Local Setup & Installation
+
+NovaPay is fully containerized. You do not need to install MongoDB, Redis, or RabbitMQ on your host machine.
+
+### Prerequisites
+- Docker & Docker Desktop
+- Node.js (v18+)
+
+### 1. Start the Backend Infrastructure
+Navigate to the root directory and spin up the microservices using Docker Compose:
+```bash
+docker-compose up -d --build
 ```
-docker compose up -d --build
+*(This will start MongoDB, Redis, RabbitMQ, the Auth Service, Wallet Service, and Payment Service on their respective ports).*
+
+### 2. Start the Frontend
+Open a new terminal window and navigate to the React app:
+```bash
+cd apps/web
+npm install
+npm run dev
 ```
 
-This starts:
-• MongoDB
-• Auth Service (port 4001)
-• Wallet Service (port 4002)
-• Payment Service (port 4003)
+The application will now be running on `http://localhost:5173`.
 
----
+## 📂 Microservices Breakdown
 
-# 📡 API Examples
+| Service | Port | Responsibility |
+|---|---|---|
+| `auth-service` | 4001 | JWT issuance, Profile management, WebSockets, File Uploads |
+| `wallet-service` | 4002 | Balance ledger, Bank account linking, Top-ups |
+| `payment-service` | 4003 | P2P Transfers, Redis Caching, RabbitMQ Message Publishing |
+| `emailWorker` | - | Background Node script consuming RabbitMQ events to send SMTP emails |
 
-## Register
-
-POST `/auth/register`
-
-## Login
-
-POST `/auth/login`
-
-## Create Wallet
-
-POST `/wallet/create`
-Authorization: Bearer <JWT>
-
-## Transfer Money
-
-POST `/payments/transfer`
-Authorization: Bearer <JWT>
-
----
-
-# 🧩 Key Design Decisions
-
-• JWT authentication for scalable security
-• Separate microservices to simulate real fintech systems
-• MongoDB replica set to support transactions
-• Docker networking to remove environment issues
-• Payment service calls Wallet service via API instead of DB access
-
----
-
-# 🧪 Challenges Faced
-
-• MongoDB replica set setup and debugging
-• Docker networking issues (localhost vs container name)
-• Service startup race conditions
-• JWT expiry handling
-• Distributed debugging across services
-
-These problems reflect real‑world backend development.
-
----
-
-# 🔮 Future Improvements
-
-• Add Redis caching
-• Add idempotency for payments
-• Add rate limiting
-• Build React frontend
-• Add CI/CD pipeline
-
----
-
-# 🤝 Contributing
-
-Contributions, suggestions, and issues are welcome! Open an issue or pull request.
-
----
-
-# 📌 One‑Line Summary
-
-NovaPay is a Dockerized fintech backend built with microservices, JWT authentication, MongoDB replica sets, and REST APIs to simulate real payment systems.
+## 🔮 Future Roadmap (Enterprise Scalability)
+- [ ] Migrate codebase to strictly typed **TypeScript**.
+- [ ] Implement the **Transactional Outbox Pattern** to mathematically guarantee no money is lost during the "Dual Write" phase between MongoDB and RabbitMQ.
+- [ ] Transition file uploads from local disk to **AWS S3**.
+- [ ] Implement automated unit testing coverage via **Jest**.
