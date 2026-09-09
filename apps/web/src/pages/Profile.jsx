@@ -185,7 +185,7 @@ export default function Profile() {
   useEffect(() => {
     if (!currentUser?.userId) return;
     // Connect to the Auth Service WebSocket Server
-    const socket = io("http://localhost:4001");
+    const socket = io(import.meta.env.VITE_AUTH_API_URL);
 
     socket.on("connect", () => {
       console.log("Connected to WebSockets!");
@@ -352,7 +352,7 @@ export default function Profile() {
             <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 16, marginBottom: 24 }}>
               <div style={{
                 width: 80, height: 80, borderRadius: "50%", background: "#333",
-                backgroundImage: profile.profilePictureUrl ? `url(http://localhost:4001${profile.profilePictureUrl})` : "none",
+                backgroundImage: profile.profilePictureUrl ? `url(${import.meta.env.VITE_AUTH_API_URL}${profile.profilePictureUrl})` : "none",
                 backgroundSize: "cover", backgroundPosition: "center"
               }} />
 
@@ -397,7 +397,7 @@ export default function Profile() {
 
             {profile.kycDocumentUrl && (
               <div style={{ marginTop: 16 }}>
-                <a href={`http://localhost:4001${profile.kycDocumentUrl}`} target="_blank" rel="noreferrer" style={{ color: "#27e0b3" }}>
+                <a href={`${import.meta.env.VITE_AUTH_API_URL}${profile.kycDocumentUrl}`} target="_blank" rel="noreferrer" style={{ color: "#27e0b3" }}>
                   View Submitted Document
                 </a>
               </div>

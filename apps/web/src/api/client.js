@@ -1,8 +1,9 @@
 import axios from "axios";
 
-const AUTH_API = "http://localhost:4001";
-const WALLET_API = "http://localhost:4002";
-const PAYMENT_API = "http://localhost:4003";
+const AUTH_API = import.meta.env.VITE_AUTH_API_URL;
+const WALLET_API = import.meta.env.VITE_WALLET_API_URL;
+const PAYMENT_API = import.meta.env.VITE_PAYMENT_API_URL;
+
 
 const withAuth = (instance) => {
   instance.interceptors.request.use((config) => {
