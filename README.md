@@ -1,33 +1,33 @@
-# 🚀 NovaPay
+# NovaPay
 
 NovaPay is a containerized, event-driven fintech platform demonstrating a modern microservices architecture. It features secure peer-to-peer money transfers, real-time WebSockets, read-through caching, and asynchronous background processing.
 
-## 🏗️ Architecture Diagram
+## Architecture Diagram
 
 Below is the high-level architecture of how the microservices communicate with the databases, caching layer, and message queues.
 
 ```mermaid
 graph TD
     %% Frontend
-    UI[🖥️ React Frontend]
+    UI[React Frontend]
 
     %% Microservices
     subgraph Docker Compose
-        Auth[🔐 Auth Service :4001]
-        Wallet[💳 Wallet Service :4002]
-        Payment[💸 Payment Service :4003]
+        Auth[Auth Service :4001]
+        Wallet[Wallet Service :4002]
+        Payment[Payment Service :4003]
         
         %% Databases & Brokers
-        DB[(🍃 MongoDB Replica Set)]
-        Cache[(⚡ Redis Cache)]
-        MQ[[🐇 RabbitMQ]]
+        DB[(MongoDB Replica Set)]
+        Cache[(Redis Cache)]
+        MQ[[RabbitMQ]]
         
         %% Background Worker
-        Worker[⚙️ Email Worker]
+        Worker[Email Worker]
     end
 
     %% External
-    SMTP[📧 Gmail SMTP]
+    SMTP[Gmail SMTP]
 
     %% API Connections
     UI -->|REST / JWT| Auth
@@ -53,7 +53,7 @@ graph TD
     Worker -->|Send Receipt| SMTP
 ```
 
-## ✨ Core Features
+## Core Features
 
 * **Secure Authentication:** JWT-based stateless auth mechanism with user profile management.
 * **Multipart File Uploads:** Secure KYC document and avatar uploads using `multer`.
@@ -62,7 +62,7 @@ graph TD
 * **Real-Time Push Notifications:** The frontend maintains a persistent **WebSocket** connection to instantly reflect administrative KYC approvals and UI state changes without requiring page refreshes.
 * **Wallet & Bank Integration:** Users can securely link external bank accounts to fund their digital wallets before executing peer-to-peer transfers.
 
-## ⚙️ Local Setup & Installation
+## Local Setup & Installation
 
 NovaPay is fully containerized. You do not need to install MongoDB, Redis, or RabbitMQ on your host machine.
 
@@ -87,7 +87,7 @@ npm run dev
 
 The application will now be running on `http://localhost:5173`.
 
-## 📂 Microservices Breakdown
+## Microservices Breakdown
 
 | Service | Port | Responsibility |
 |---|---|---|
@@ -96,7 +96,7 @@ The application will now be running on `http://localhost:5173`.
 | `payment-service` | 4003 | P2P Transfers, Redis Caching, RabbitMQ Message Publishing |
 | `emailWorker` | - | Background Node script consuming RabbitMQ events to send SMTP emails |
 
-## 🔮 Future Roadmap (Enterprise Scalability)
+## Future Roadmap (Enterprise Scalability)
 - [ ] Migrate codebase to strictly typed **TypeScript**.
 - [ ] Implement the **Transactional Outbox Pattern** to mathematically guarantee no money is lost during the "Dual Write" phase between MongoDB and RabbitMQ.
 - [ ] Transition file uploads from local disk to **AWS S3**.
