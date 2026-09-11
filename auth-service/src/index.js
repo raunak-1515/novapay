@@ -46,12 +46,18 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 app.use("/auth", authRoutes);
 
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log("Auth Service Connected to MongoDB");
-    server.listen(process.env.PORT, () => {
-      console.log(`Auth Service running on port ${process.env.PORT}`);
-    });
-  })
-  .catch((err) => console.log("Mongo error: ", err));
+// Only connect to the real DB and start the server if we are NOT running tests
+if (process.env.NODE_ENV !== "test") {
+  mongoose
+    .connect(process.env.MONGO_URI)
+    .then(() => {
+      console.log("Auth Service Connected to MongoDB");
+      server.listen(process.env.PORT, () => {
+        console.log(`Auth Service running on port ${process.env.PORT}`);
+      });
+    })
+    .catch((err) => console.log("Mongo error: ", err));
+
+}
+module.exports = app;
+
