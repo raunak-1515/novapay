@@ -51,6 +51,18 @@ export default function Dashboard() {
   const currentUser = token ? JSON.parse(atob(token.split(".")[1])) : null;
   const currentUserId = currentUser?.userId;
 
+  // Cross-Tab Sync: If another tab calls localStorage.clear(), instantly log out this tab too!
+  useEffect(() => {
+    const syncLogout = (e) => {
+      if (e.key === "token" && !e.newValue) navigate("/login");
+      if (e.key === null) navigate("/login"); // Catches localStorage.clear()
+    };
+
+    window.addEventListener("storage", syncLogout);
+    return () => window.removeEventListener("storage", syncLogout);
+  }, [navigate]);
+
+
   const loadBalance = async () => {
     try {
       setIsBalanceLoading(true);
@@ -163,11 +175,16 @@ export default function Dashboard() {
     }
 
     try {
+      const idempotencyKey = crypto.randomUUID();
       setIsTransferLoading(true);
       await paymentApi.post("/payments/transfer", {
-        recipientEmail,
+        recipientEmail: recipientEmail,
         amount: Number(transferAmount),
         note: transferNote.trim(),
+      }, {
+        headers: {
+          "Idempotency-Key": idempotencyKey,
+        },
       });
       setTransferMessage("Transfer successful");
       setRecipientEmail("");
@@ -181,13 +198,14 @@ export default function Dashboard() {
         err.response?.data?.message ||
         "Transfer failed",
       );
+      await loadTransactions();
     } finally {
       setIsTransferLoading(false);
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    localStorage.clear();
     navigate("/login");
   };
 
@@ -746,8 +764,8 @@ export default function Dashboard() {
               No transactions yet.
             </p>
           ) : (
-            <div style={{ overflowX: "auto", marginTop: 12 }}>
-              <table className="table">
+            <div style={{ overflowX: "auto", overflowY: "auto", maxHeight: "400px", marginTop: 12 }}>
+              <table className="table" style={{ position: "relative" }}>
                 <thead>
                   <tr>
                     <th>Type</th>

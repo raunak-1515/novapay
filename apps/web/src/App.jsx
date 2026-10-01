@@ -4,6 +4,8 @@ import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import Admin from "./pages/Admin";
+
 
 function App() {
   return (
@@ -27,6 +29,8 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/admin" element={<Admin />} />
+
 
         <Route path="*" element={<Navigate to="/register" replace />} />
       </Routes>

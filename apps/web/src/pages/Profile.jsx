@@ -41,6 +41,18 @@ export default function Profile() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [kycNotification, setKycNotification] = useState("");
 
+  // Cross-Tab Sync: If another tab calls localStorage.clear(), instantly log out this tab too!
+  useEffect(() => {
+    const syncLogout = (e) => {
+      if (e.key === "token" && !e.newValue) navigate("/login");
+      if (e.key === null) navigate("/login"); // Catches localStorage.clear()
+    };
+
+    window.addEventListener("storage", syncLogout);
+    return () => window.removeEventListener("storage", syncLogout);
+  }, [navigate]);
+
+
   const fetchBankAccounts = async () => {
     try {
       const res = await walletApi.get("/wallet/bank-accounts");
@@ -148,8 +160,7 @@ export default function Profile() {
 
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("userEmail");
+    localStorage.clear();
     navigate("/login");
   };
 
@@ -305,14 +316,15 @@ export default function Profile() {
                 minWidth: 180,
                 display: "flex",
                 flexDirection: "column",
+                alignItems: "flex-end",
                 gap: 12,
               }}
             >
-              <div>
-                <div className="muted">Session Role</div>
-                <div style={{ fontWeight: 700, marginTop: 6 }}>
+              <div style={{ textAlign: "right", marginBottom: 4 }}>
+                <div className="muted" style={{ fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 8 }}>Session Role</div>
+                <span className="badge ok" style={{ padding: "6px 14px", fontSize: "0.85rem" }}>
                   {currentUser?.role || "USER"}
-                </div>
+                </span>
               </div>
 
               <button
@@ -349,16 +361,30 @@ export default function Profile() {
           <div className="card">
             <h3>Personal Information</h3>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 16, marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 16, marginBottom: 24, flexWrap: "wrap" }}>
               <div style={{
-                width: 80, height: 80, borderRadius: "50%", background: "#333",
+                width: 80, minWidth: 80, height: 80, borderRadius: "50%", background: "#333",
                 backgroundImage: profile.profilePictureUrl ? `url(${import.meta.env.VITE_AUTH_API_URL}${profile.profilePictureUrl})` : "none",
-                backgroundSize: "cover", backgroundPosition: "center"
-              }} />
+                backgroundSize: "cover", backgroundPosition: "center",
+                flexShrink: 0, border: "2px solid var(--line)", position: "relative"
+              }}>
+                <label style={{
+                  position: "absolute", bottom: -5, right: -5, background: "var(--accent)", color: "#000",
+                  width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.3)"
+                }}>
+                  <input key={avatarFile ? "has-file" : "no-file"} type="file" accept="image/*" onChange={(e) => setAvatarFile(e.target.files[0])} style={{ display: "none" }} />
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                </label>
+              </div>
 
-              <form onSubmit={handleUploadAvatar} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <input type="file" onChange={(e) => setAvatarFile(e.target.files[0])} />
-                <button type="submit" className="btn ghost" disabled={profileLoading}>Upload Avatar</button>
+              <form onSubmit={handleUploadAvatar} style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                {avatarFile && (
+                  <div style={{ fontSize: "0.85rem", color: "var(--text)", background: "rgba(0,0,0,0.2)", padding: "8px 14px", borderRadius: 8, border: "1px solid var(--line)" }}>
+                    {avatarFile.name}
+                  </div>
+                )}
+                <button type="submit" className="btn ghost" disabled={profileLoading || !avatarFile}>Save Avatar</button>
               </form>
             </div>
 
@@ -385,10 +411,14 @@ export default function Profile() {
 
             {profile.kycStatus !== 'VERIFIED' && (
               <form onSubmit={handleUploadKyc} style={{ marginTop: 24 }}>
-                <div style={{ border: "2px dashed #444", padding: 32, borderRadius: 8, textAlign: "center", marginBottom: 16 }}>
-                  <p className="muted">Select your ID Document (PDF, JPG)</p>
-                  <input type="file" onChange={(e) => setKycFile(e.target.files[0])} style={{ marginTop: 12 }} />
-                </div>
+                <label style={{ display: "block", border: "2px dashed var(--line)", padding: 32, borderRadius: 8, textAlign: "center", marginBottom: 16, cursor: "pointer", background: "rgba(255,255,255,0.02)", transition: "all 0.2s" }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.5" style={{ marginBottom: 12 }}>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  <p className="muted" style={{ margin: 0, fontWeight: 600 }}>Click to Select Document (PDF, JPG)</p>
+                  {kycFile && <p style={{ color: "var(--accent)", marginTop: 8, fontWeight: 700, fontSize: "0.95rem" }}>📄 {kycFile.name}</p>}
+                  <input key={kycFile ? "has-file" : "no-file"} type="file" onChange={(e) => setKycFile(e.target.files[0])} style={{ display: "none" }} />
+                </label>
                 <button type="submit" className="btn primary" style={{ width: "100%" }} disabled={profileLoading}>
                   Submit for Verification
                 </button>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authApi } from "../api/client";
 
@@ -8,6 +8,25 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // If the user is already logged in, instantly teleport them away from the auth pages!
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = localStorage.getItem("token");
+      const role = localStorage.getItem("userRole");
+      if (token) {
+        if (role === "admin") navigate("/admin");
+        else navigate("/dashboard");
+      }
+    };
+
+    // 1. Check immediately when the page loads
+    checkAuth();
+
+    // 2. Cross-Tab Sync: Check again if another tab logs in!
+    window.addEventListener("storage", checkAuth);
+    return () => window.removeEventListener("storage", checkAuth);
+  }, [navigate]);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,12 +42,18 @@ export default function Login() {
       const res = await authApi.post("/auth/login", { email, password });
       localStorage.setItem("token", res.data.accessToken);
       localStorage.setItem("userEmail", res.data.user.email);
-      navigate("/dashboard");
+      localStorage.setItem("userRole", res.data.user.role);
+      if (res.data.user.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
+
     } catch (err) {
       setError(
         err.response?.data?.error ||
-          err.response?.data?.message ||
-          "Login failed",
+        err.response?.data?.message ||
+        "Login failed",
       );
     } finally {
       setLoading(false);

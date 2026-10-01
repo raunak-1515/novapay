@@ -9,6 +9,17 @@ const { publishMessage } = require("../config/rabbitmq");
 
 
 exports.transfer = async (req, res) => {
+  const idempotencyKey = req.headers["idempotency-key"];
+
+  // Rule 2: Idempotency (Prevent double charges on retries)
+  if (idempotencyKey) {
+    const isProcessed = await redisClient.get(`idempotency_${idempotencyKey}`);
+    if (isProcessed) {
+      return res.status(200).json({ message: "Transfer already processed (Idempotency Hit)" });
+    }
+  }
+
+
   const session = await mongoose.startSession();
   session.startTransaction();
   const fromUserId = req.user.userId;
@@ -16,6 +27,8 @@ exports.transfer = async (req, res) => {
   const normalizedRecipientEmail = recipientEmail?.trim().toLowerCase();
   const numericAmount = Number(amount);
   const trimmedNote = note?.trim() || "";
+
+  let debitSuccessful = false;
 
   try {
     if (!normalizedRecipientEmail) {
@@ -47,6 +60,7 @@ exports.transfer = async (req, res) => {
         },
       },
     );
+    debitSuccessful = true;
 
     //Ask Wallet Service to credit receiver
     await axios.post(
@@ -58,6 +72,8 @@ exports.transfer = async (req, res) => {
         },
       },
     );
+
+
 
     const transaction = await Transaction.create(
       [
@@ -91,6 +107,11 @@ exports.transfer = async (req, res) => {
     }
 
 
+    // Lock this specific Idempotency Key in Redis for 24 hours so it can't be reused
+    if (idempotencyKey) {
+      await redisClient.setEx(`idempotency_${idempotencyKey}`, 60 * 60 * 24, "PROCESSED");
+    }
+
     res.json({
       message: "Transfer successful",
       transactionId: transaction[0]._id,
@@ -99,6 +120,20 @@ exports.transfer = async (req, res) => {
     await session.abortTransaction();
     session.endSession();
 
+    // Rule 1: The Saga Pattern (Compensating Transaction)
+    if (debitSuccessful) {
+      console.log("Credit failed! Executing Compensating Transaction to refund sender...");
+      try {
+        await axios.post(
+          `${process.env.WALLET_SERVICE_URL}/wallet/credit`,
+          { userId: fromUserId, amount: numericAmount },
+          { headers: { "x-internal-service-secret": process.env.INTERNAL_SERVICE_SECRET } }
+        );
+      } catch (refundError) {
+        console.error("CRITICAL ALARM: Compensating transaction failed!", refundError);
+      }
+    }
+
     await Transaction.create({
       fromUserId: req.user.userId,
       toUserId: req.user.userId,
@@ -106,6 +141,8 @@ exports.transfer = async (req, res) => {
       note: trimmedNote,
       status: "FAILED",
     });
+    await redisClient.del(`history_${req.user.userId}`);
+
     const errorMessage =
       error.response?.data?.message ||
       error.response?.data?.error ||

@@ -94,16 +94,20 @@ exports.debitWallet = async (req, res) => {
     if (numericAmount <= 0 || !numericAmount)
       return res.status(400).json({ message: "Invalid amount" });
 
-    const wallet = await Wallet.findOne({ userId });
+    // The database natively checks if balance >= numericAmount AND deducts it in ONE millisecond step
+    const wallet = await Wallet.findOneAndUpdate(
+      { userId: userId, balance: { $gte: numericAmount } },
+      { $inc: { balance: -numericAmount } },
+      { new: true }
+    );
 
-    if (!wallet) return res.status(404).json({ message: "Wallet not found" });
+    // If it returns null, it means either the wallet doesn't exist OR the balance was too low
+    if (!wallet) {
+      return res.status(400).json({ message: "Insufficient balance or wallet not found" });
+    }
 
-    if (wallet.balance < numericAmount)
-      return res.status(400).json({ message: "Insufficient balance" });
-
-    wallet.balance -= numericAmount;
-    await wallet.save();
     res.json({ message: "Debit successful", balance: wallet.balance });
+
   } catch (err) {
     res.status(500).json({ message: "Debit failed" });
   }
@@ -117,11 +121,14 @@ exports.creditWallet = async (req, res) => {
     if (!userId || numericAmount <= 0 || !numericAmount)
       return res.status(400).json({ message: "Invalid input" });
 
-    const wallet = await Wallet.findOne({ userId });
-    if (!wallet) return res.status(404).json({ message: "wallet not found" });
-
-    wallet.balance += numericAmount;
-    await wallet.save();
+    const wallet = await Wallet.findOneAndUpdate(
+      { userId: userId },
+      { $inc: { balance: numericAmount } },
+      { new: true }
+    );
+    if (!wallet) {
+      return res.status(404).json({ message: "Wallet not found" });
+    }
 
     res.json({ message: "wallet credited", balance: wallet.balance });
   } catch (err) {

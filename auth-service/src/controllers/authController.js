@@ -80,6 +80,7 @@ exports.login = async (req, res) => {
       user: {
         _id: user._id,
         email: user.email,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -210,4 +211,14 @@ exports.verifyKyc = async (req, res) => {
 
   }
 }
+
+exports.getPendingKyc = async (req, res) => {
+  try {
+    const users = await User.find({ kycStatus: "PENDING" }).select("-passwordHash");
+    return res.status(200).json({ users });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
 
